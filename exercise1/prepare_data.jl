@@ -108,8 +108,8 @@ function prepare_parameters(;
   );
 
   data["soil"] = Dict{String,Any}(
-      "Pcla" => 0.244,
-      "Psan" => 0.254,
+      "Pcla" => Pcla,
+      "Psan" => Psan,
       "Porg" => 0.055,
       "Kfc" => 0.2,
       "Phy" => 10000.0,
@@ -326,7 +326,7 @@ function save_parameters(data::AbstractDict, filepath::AbstractString)
 end
 
 """
-  prepare_netcdf(input_data_path, ca_data_path, filepath; ZR95_L = [250.0], Pre_fac = 1.0)
+  prepare_netcdf(input_data_path, ca_data_path, filepath; ZR95_L = [250.0], Pre_frac = 1.0)
 
   Prepares a NetCDF file with the necessary structure and variables for the Tethys-Chloris model.
   It reads the input meteorological data and atmospheric CO2 concentration data from the specified paths,
@@ -337,7 +337,7 @@ end
   - `ca_data_path::AbstractString`: Path to the atmospheric CO2 concentration data in .mat format.
   - `filepath::AbstractString`: Path where the prepared NetCDF file will be saved.
   - `ZR95_L::Vector{Float64}`: Optional vector specifying the ZR95 parameter for low vegetation. Default is [250.0].
-  - `Pre_fac::Float64`: Optional scaling factor for the precipitation data. Default is 1.0.
+  - `Pre_frac::Float64`: Optional scaling factor for the precipitation data. Default is 1.0.
 
 """
 function prepare_netcdf(
@@ -345,7 +345,7 @@ function prepare_netcdf(
   ca_data_path::AbstractString,
   filepath::AbstractString;
   ZR95_L::Vector{Float64} = [250.0],
-  Pre_fac::Float64 = 1.0,
+  Pre_frac::Float64 = 1.0,
 )
   FT = Float64
 
@@ -401,7 +401,7 @@ function prepare_netcdf(
     defVar(ds, "SAD1", input_data["SAD1"][hours], ("hours",))
     defVar(ds, "SAD2", input_data["SAD2"][hours], ("hours",))
     defVar(ds, "SAB1", input_data["SAB1"][hours], ("hours",))
-    defVar(ds, "Pre", input_data["Pre"][hours] * Pre_fac, ("hours",))
+    defVar(ds, "Pre", input_data["Pre"][hours] * Pre_frac, ("hours",))
     defVar(ds, "SAB2", input_data["SAB2"][hours], ("hours",))
     defVar(ds, "N", input_data["Latm"][hours], ("hours",)) # TODO: explain why this is happening
     defVar(ds, "Tdew", input_data["Tdew"][hours], ("hours",))
