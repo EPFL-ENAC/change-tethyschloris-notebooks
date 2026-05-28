@@ -3,14 +3,30 @@ using Dates: DateTime
 using YAML: write_file
 using NCDatasets: NCDataset, defGroup, defDim, defVar
 
-function prepare_parameters()
-  # input_data = matread(input_data_path)
+"""
+  prepare_parameters(; Psan::Float64 = 0.254, Pcla::Float64 = 0.244)
 
-  # start_time = 1
-  # end_time = 87648
+  Prepares a dictionary containing the parameters for the Tethys-Chloris model. The
+  parameters are organized into different categories such as cell properties, debris cover
+  parameters, simulation settings, landcover properties, rock properties, snow and ice
+  properties, soil properties, urban properties, vegetation properties, vegetation dynamics,
+  vegetation management, and exudation.
 
-  # input_data = process_data(input_data, start_time, end_time)
-  # Datam = datevec(input_data["Date"])
+  The function takes optional keyword arguments for the soil properties (Psan and Pcla) and
+  returns a dictionary with all the parameters.
+
+  # Arguments
+  - `Psan::Float64`: The percentage of sand in the soil. Default is 0.254.
+  - `Pcla::Float64`: The percentage of clay in the soil. Default is 0.244.
+
+  # Returns
+  - `data::Dict{String,Any}`: A dictionary containing all the parameters for the
+    Tethys-Chloris model, organized into different categories.
+"""
+function prepare_parameters(;
+  Psan::Float64 = 0.254,
+  Pcla::Float64 = 0.244,
+)
 
   FT = Float64
 
@@ -294,14 +310,42 @@ function prepare_parameters()
   return data
 end
 
+"""
+  save_parameters(data::AbstractDict, filepath::AbstractString)
+
+  Saves the given parameters data to a YAML file at tyhe specified filepath.
+
+  # Arguments
+  - `data::AbstractDict`: A dictionary containing the parameters to be saved.
+  - `filepath::AbstractString`: The path where the YAML file will be saved.
+"""
 function save_parameters(data::AbstractDict, filepath::AbstractString)
   write_file(filepath, data)
+
+  return nothing
 end
 
+"""
+  prepare_netcdf(input_data_path, ca_data_path, filepath; ZR95_L = [250.0], Pre_fac = 1.0)
+
+  Prepares a NetCDF file with the necessary structure and variables for the Tethys-Chloris model.
+  It reads the input meteorological data and atmospheric CO2 concentration data from the specified paths,
+  processes them, and saves them in a NetCDF format at the given filepath.
+
+  # Arguments
+  - `input_data_path::AbstractString`: Path to the input meteorological data in .mat format.
+  - `ca_data_path::AbstractString`: Path to the atmospheric CO2 concentration data in .mat format.
+  - `filepath::AbstractString`: Path where the prepared NetCDF file will be saved.
+  - `ZR95_L::Vector{Float64}`: Optional vector specifying the ZR95 parameter for low vegetation. Default is [250.0].
+  - `Pre_fac::Float64`: Optional scaling factor for the precipitation data. Default is 1.0.
+
+"""
 function prepare_netcdf(
   input_data_path::AbstractString,
   ca_data_path::AbstractString,
-  filepath::AbstractString,
+  filepath::AbstractString;
+  ZR95_L::Vector{Float64} = [250.0],
+  Pre_fac::Float64 = 1.0,
 )
   FT = Float64
 
@@ -357,7 +401,7 @@ function prepare_netcdf(
     defVar(ds, "SAD1", input_data["SAD1"][hours], ("hours",))
     defVar(ds, "SAD2", input_data["SAD2"][hours], ("hours",))
     defVar(ds, "SAB1", input_data["SAB1"][hours], ("hours",))
-    defVar(ds, "Pre", input_data["Pre"][hours], ("hours",))
+    defVar(ds, "Pre", input_data["Pre"][hours] * Pre_fac, ("hours",))
     defVar(ds, "SAB2", input_data["SAB2"][hours], ("hours",))
     defVar(ds, "N", input_data["Latm"][hours], ("hours",)) # TODO: explain why this is happening
     defVar(ds, "Tdew", input_data["Tdew"][hours], ("hours",))
@@ -455,7 +499,7 @@ function prepare_netcdf(
     defVar(low_vegetation, "Vl", [100.0], ("crownareas",))
     defVar(low_vegetation, "TBio", [1.0], ("crownareas",))
     defVar(low_vegetation, "TdpI", [2.0], ("crownareas",))
-    defVar(low_vegetation, "ZR95", [250.0], ("crownareas",))
+    defVar(low_vegetation, "ZR95", ZR95_L, ("crownareas",))
     defVar(
         low_vegetation,
         "B",
