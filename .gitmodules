@@ -1,0 +1,4 @@
+[submodule "TethysChloris.jl"]
+	path = TethysChloris.jl
+	url = https://github.com/CHANGE-EPFL/TethysChloris.jl.git
+	branch = fix/extend-test-cases
