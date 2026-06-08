@@ -31,4 +31,6 @@ JuliaLocalPreferences.toml
 *.yaml
 *.nc
 
-*/data/
+*/data/*.mat
+*/data/*.nc
+*/data/*.yaml
