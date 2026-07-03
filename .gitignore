@@ -34,3 +34,6 @@ JuliaLocalPreferences.toml
 */data/*.mat
 */data/*.nc
 */data/*.yaml
+*.m
+
+exercise2/data/
