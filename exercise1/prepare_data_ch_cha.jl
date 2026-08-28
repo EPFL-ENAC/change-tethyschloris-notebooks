@@ -349,9 +349,6 @@ function prepare_netcdf(
 )
   FT = Float64
 
-  ZR95_L = FT.(ZR95_L)
-  Pre_frac = FT(Pre_frac)
-
   input_data = matread(input_data_path)
 
   start_time = 1
