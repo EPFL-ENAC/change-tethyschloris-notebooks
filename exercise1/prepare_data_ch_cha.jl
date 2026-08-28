@@ -24,8 +24,8 @@ using NCDatasets: NCDataset, defGroup, defDim, defVar
     Tethys-Chloris model, organized into different categories.
 """
 function prepare_parameters(;
-  Psan::Float64 = 0.254,
-  Pcla::Float64 = 0.244,
+  Psan::AbstractFloat = 0.254,
+  Pcla::AbstractFloat = 0.244,
 )
 
   FT = Float64
@@ -344,8 +344,8 @@ function prepare_netcdf(
   input_data_path::AbstractString,
   ca_data_path::AbstractString,
   filepath::AbstractString;
-  ZR95_L::Vector{Float64} = [250.0],
-  Pre_frac::Float64 = 1.0,
+  ZR95_L::AbstractVector = [250.0],
+  Pre_frac::Number = 1.0,
 )
   FT = Float64
 
