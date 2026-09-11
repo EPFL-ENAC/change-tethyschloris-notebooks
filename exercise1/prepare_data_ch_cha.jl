@@ -30,6 +30,20 @@ function prepare_parameters(;
 
   FT = Float64
 
+  # ---------------------------------------------------------------------------
+  # How to read the parameter dictionaries
+  # ---------------------------------------------------------------------------
+  # Depths are expressed in millimetres unless stated otherwise. Fractions are
+  # dimensionless and normally range from 0 to 1. High and low refer to the
+  # overstory and understory vegetation layers. Arrays contain one value per
+  # crown area; NaN indicates that a parameter is unavailable or not used for
+  # the selected configuration. Several secondary soil and optical properties
+  # are derived by TethysChloris from the primary values supplied below.
+
+  # Soil-layer interface depths [mm]. The differences between adjacent values
+  # define the thicknesses of the 13 soil layers.
+  # CH-Cha uses one crown area. High- and low-vegetation parameter arrays
+  # therefore contain one element; ZR95 = 0 indicates an absent vegetation layer.
   Zs = FT.([0, 10, 20, 50, 100, 150, 200, 300, 400, 500, 600, 800, 1000, 1300])
 
   n_layers = length(Zs) - 1
@@ -38,6 +52,13 @@ function prepare_parameters(;
 
   data["n_layers"] = n_layers
 
+  # Cell and topographic properties
+  # cellsize : nominal grid-cell size used in the area/contour-length terms
+  # SvF      : sky-view factor [-]
+  # SN       : stream identifier
+  # Slo_top  : surface slope, dy/dx [-]
+  # Ared     : fraction of the cell not occupied by rock [-]
+  # aR       : vertical-to-horizontal hydraulic-conductivity anisotropy [-]
   # Parameters - Cell properties
   data["cell"] = Dict{String,Any}(
       "cellsize" => 1.0,
@@ -48,6 +69,14 @@ function prepare_parameters(;
       "aR" => 1.0,
   );
 
+  # Debris-cover properties (mainly relevant over glaciers or snow)
+  # alb      : debris albedo [-]
+  # e_sur    : debris surface emissivity [-]
+  # lan      : debris thermal conductivity [W m^-1 K^-1]
+  # rho      : debris density [kg m^-3]
+  # cs       : debris specific heat capacity [J kg^-1 K^-1]
+  # dbThick  : debris-layer thickness [m]; zero disables the debris layer
+  # zom      : debris aerodynamic roughness length [m]
   # Parameters - Debris cover parameters
   data["debris"] = Dict{String,Any}(
       "alb" => 0.13,
@@ -59,6 +88,21 @@ function prepare_parameters(;
       "zom" => 0.016,
   );
 
+  # Simulation and spatial settings
+  # Zs       : soil-layer interface depths [mm]
+  # dt       : hydrologic model time step [s]
+  # dtd      : vegetation-dynamics time step [day]
+  # Lon/Lat  : site longitude and latitude [degrees]
+  # DeltaGMT : local time offset from GMT [h]
+  # t_bef/aft: time-window offsets used by the forcing/solar calculations
+  # Zdes     : effective depth over which direct soil evaporation is distributed [mm]
+  # Zinf     : effective depth over which infiltration enters the soil [mm]
+  # Zbio     : biologically active soil depth [mm]
+  # SPAR     : soil hydraulic formulation (1 = van Genuchten, 2 = Saxton-Rawls)
+  # fpr      : precipitation-frequency/disaggregation factor [-]
+  # CASE_ROOT: root-profile formulation selector
+  # zatm     : meteorological measurement/reference height [m]
+  # timerange: first and last timestamp represented by the forcing record
   data["simulation"] = Dict{String,Any}(
       "Zs" => Zs,
       "dt" => 3600,
@@ -79,6 +123,10 @@ function prepare_parameters(;
       "timerange" => [DateTime("2005-01-01T00:30:00"), DateTime("2014-12-31T23:30:00")],
   );
 
+  # Land-cover fractions [-]. Cbare, Cwat, Curb, Crock, and the sum of Ccrown
+  # must add to one. Ccrown contains one fraction for each vegetation crown area.
+  # Cbare: bare soil; Cwat: open water; Curb: impervious/urban surface;
+  # Crock: exposed rock; Ccrown: vegetated crown fractions.
   data["landcover"] = Dict{String,Any}(
       "Cbare" => 0.0,
       "Cwat" => 0.0,
@@ -87,8 +135,23 @@ function prepare_parameters(;
       "Ccrown" => [1.0],
   );
 
+  # Rock/bedrock properties
+  # Kbot       : hydraulic conductivity at the soil-bedrock interface [mm h^-1]
+  # Krock      : fractured-rock hydraulic conductivity [mm h^-1]
+  # In_max_rock: maximum water interception storage on exposed rock [mm]
   data["rock"] = Dict{String,Any}("Kbot" => NaN64, "Krock" => NaN64, "In_max_rock" => 0.1);
 
+  # Snow and ice parameters
+  # TminS/TmaxS: lower/upper air-temperature thresholds for precipitation phase [degC]
+  # WatFreez_Th: threshold for freezing open water [degC]
+  # dz_ice     : ice/freezing-layer growth rate [mm h^-1]
+  # Th_Pr_sno  : snowfall-intensity threshold used to identify new snow
+  # ros_max1/2 : empirical maximum snow-density parameters [kg m^-3]
+  # Ice_wc_sp  : maximum specific liquid-water content of ice [-]
+  # ros_ice_thr: snow-density threshold for conversion to ice [kg m^-3]
+  # Aice       : ice albedo [-]
+  # dir/dif_vis/nir: initial direct/diffuse visible and near-infrared albedos [-]
+  # Sp_SN_In   : snow interception capacity per unit leaf area [mm LAI^-1]
   data["snowice"] = Dict{String,Any}(
       "TminS" => -0.8,
       "TmaxS" => 2.8,
@@ -107,6 +170,13 @@ function prepare_parameters(;
       "Sp_SN_In" => 5.9,
   );
 
+  # Primary soil-texture parameters used to derive the hydraulic and thermal properties
+  # Pcla       : clay mass fraction [-]
+  # Psan       : sand mass fraction [-]
+  # Porg       : soil organic-matter fraction [-]
+  # Kfc        : hydraulic conductivity used to define field capacity [mm h^-1]
+  # Phy        : matric-potential magnitude at the hygroscopic water content [kPa]
+  # color_class: soil colour class used by the surface-radiation parameterization
   data["soil"] = Dict{String,Any}(
       "Pcla" => Pcla,
       "Psan" => Psan,
@@ -116,9 +186,18 @@ function prepare_parameters(;
       "color_class" => 0,
   );
 
+  # Urban/impervious-surface properties
+  # alb: albedo [-]; e_sur: emissivity [-]; BuildH: building height [m];
+  # In_max_urb: maximum interception storage of the impervious surface [mm].
   data["urban"] =
       Dict{String,Any}("alb" => 0.15, "e_sur" => 0.92, "BuildH" => 12.0, "In_max_urb" => 5.0)
 
+  # Vegetation parameters shared by the high and low vegetation layers
+  # gcI  : canopy-interception evaporation parameter [mm^-1]
+  # KcI  : canopy-interception drainage coefficient [mm]
+  # Kct  : foliage-cover decay factor controlling throughfall [-]
+  # Sllit: specific leaf area of litter [m2 litter kg^-1 dry matter]
+  # Oa   : atmospheric/intercellular oxygen concentration [umol mol^-1]
   data["vegetation"] = Dict{String,Any}(
       "gcI" => 3.7,
       "KcI" => 0.06,
@@ -127,6 +206,33 @@ function prepare_parameters(;
       "Oa" => 210000.0,
   );
 
+  # Height-dependent vegetation, photosynthesis, and plant-hydraulic parameters
+  # ZRmax/ZR50 : maximum and 50%-cumulative rooting depths [mm]
+  # Knit       : vertical canopy-nitrogen decay coefficient [-]
+  # mSl        : change in specific leaf area with LAI
+  # FI         : intrinsic quantum efficiency [umol CO2 umol^-1 photons]
+  # Do         : vapour-pressure-deficit sensitivity of stomatal conductance [Pa]
+  # a1         : coupling coefficient between assimilation and stomatal conductance
+  # go         : minimum stomatal conductance [mol m^-2 s^-1]
+  # CT         : photosynthesis pathway selector (3 = C3, 4 = C4)
+  # DSE/Ha     : activation-energy and entropy terms for temperature response [kJ mol^-1]
+  # gmes       : mesophyll conductance [mol CO2 m^-2 s^-1]
+  # rjv        : Jmax-to-Vmax scaling factor [-]
+  # Vmax       : maximum Rubisco capacity at 25 degC [umol CO2 m^-2 s^-1]
+  # Psi_sto_00/50: water potentials at onset and 50% stomatal closure [MPa]
+  # PsiL00/50  : leaf water potentials at 2% and 50% conductivity loss [MPa]
+  # PsiX50     : xylem water potential at 50% conductivity loss [MPa]
+  # Kleaf_max  : maximum leaf hydraulic conductivity
+  # Cl/Cx      : leaf and stem hydraulic capacitances
+  # Axyl       : xylem cross-sectional area per unit plant-functional-type area
+  # Kx_max     : maximum xylem hydraulic conductivity
+  # Sl         : specific leaf area [m2 leaf gC^-1]
+  # Osm_reg_Max: maximum osmotic-regulation potential
+  # eps_root_base: root filtration efficiency (used for mangrove applications)
+  # d_leaf     : characteristic leaf dimension [cm]
+  # Sp_LAI_In  : rainfall interception capacity per unit LAI [mm LAI^-1]
+  # OM         : canopy clumping factor [-]
+  # PFT_Class  : plant-functional-type class used to obtain optical properties
   data["vegetation"]["high"] = Dict{String,Any}(
       "ZRmax" => [NaN64],
       "ZR50" => [NaN64],
@@ -195,6 +301,35 @@ function prepare_parameters(;
       "PFT_Class" => [13],
   );
 
+  # Vegetation-dynamics and phenology parameters (one dictionary per crown area)
+  # Sl/mSl   : specific leaf area and its LAI-dependent slope
+  # r        : maintenance-respiration rate at 10 degC [gC gN^-1 day^-1]
+  # gR       : fraction of assimilated carbon used by growth respiration [-]
+  # LtR      : maximum leaf-to-root allocation ratio [-]
+  # eps_ac   : allocation-to-carbohydrate-reserve parameter [-]
+  # aSE      : plant type (0 evergreen, 1 seasonal, 2 grass, 3 crop)
+  # Trr      : reserve translocation rate [gC m^-2 day^-1]
+  # dd_max   : maximum drought-driven mortality rate [day^-1]
+  # dc_C     : cold-driven mortality coefficient
+  # Tcold    : cold leaf-shedding threshold [degC]
+  # drn/dsn  : fine-root and sapwood turnover rates [day^-1]
+  # age_cr   : critical leaf age [day]
+  # Bfac_lo/ls: water-stress thresholds for leaf onset/shedding [-]
+  # Tlo/Tls  : mean-temperature thresholds for leaf onset/shedding [degC]
+  # mjDay    : latest Julian day allowed for leaf onset
+  # LDay_min : minimum day length for leaf onset [h]
+  # dmg      : day of maximum growth
+  # Mf/Wm    : fruit-maturation and wood-turnover rates [day^-1]
+  # LAI_min  : minimum retained leaf area index [-]
+  # LDay_cr  : day-length threshold for senescence [h]
+  # PsiG50/99: water potentials at 50% and 99% growth reduction [MPa]
+  # gcoef    : maximum growth-rate coefficient [gC m^-2 day^-1]
+  # Klf      : turnover/fall rate of dead leaves [day^-1]
+  # fab/fbe  : above- and below-ground sapwood/reserve fractions [-]
+  # ff_r     : reference allocation fraction to fruits/reproduction [-]
+  # PAR_th   : photosynthetically active radiation threshold
+  # PsiL00/50: leaf-hydraulic vulnerability thresholds [MPa]
+  # Nl       : leaf carbon-to-nitrogen ratio [gC gN^-1]
   data["vegetationdynamics"] = Dict{String,Any}(
       "high" => [
           Dict{String,Any}(
@@ -278,6 +413,20 @@ function prepare_parameters(;
       ],
   );
 
+  # Vegetation-management parameters (one dictionary per crown area)
+  # jDay_cut      : Julian days of cutting or grazing
+  # LAI_cut       : LAI remaining after cutting/grazing
+  # B_harv        : harvested biomass; -1 denotes complete harvest [gC m^-2]
+  # fract_log     : fraction of above-ground biomass removed by logging
+  # fire_eff      : fire-effect coefficient
+  # funb_nit      : fraction of nitrogen left unburned
+  # fract_girdling: fraction of vegetation affected by girdling
+  # Crop_B        : initial crop biomass pools [gC m^-2]
+  # Crop_crown    : crop crown-cover parameter
+  # fract_resprout: below-ground fraction surviving and able to resprout
+  # fract_left    : fraction of leaves/dead leaves left after disturbance
+  # fract_left_fr : fraction of fruits left after disturbance
+  # fract_left_AB/BG: fractions of above-/below-ground woody biomass left
   data["vegetationmanagement"] = Dict{String,Any}(
       "high" => [
           Dict{String,Any}(
@@ -302,6 +451,8 @@ function prepare_parameters(;
   data["vegetationmanagement"]["low"][1]["jDay_cut"] = [125, 156, 186, 217, 247, 278];
   data["vegetationmanagement"]["low"][1]["LAI_cut"] = 1.68;
 
+  # Root-exudation setting. bfix controls whether biological nitrogen fixation
+  # is enabled for each high- and low-vegetation crown area.
   data["exudation"] = Dict{String,Any}(
       "high" => [Dict{String,Any}("bfix" => false)],
       "low" => [Dict{String,Any}("bfix" => false)],
@@ -313,7 +464,7 @@ end
 """
   save_parameters(data::AbstractDict, filepath::AbstractString)
 
-  Saves the given parameters data to a YAML file at tyhe specified filepath.
+  Saves the given parameters data to a YAML file at the specified filepath.
 
   # Arguments
   - `data::AbstractDict`: A dictionary containing the parameters to be saved.
@@ -349,9 +500,6 @@ function prepare_netcdf(
 )
   FT = Float64
 
-  ZR95_L = FT.(ZR95_L)
-  Pre_frac = FT(Pre_frac)
-
   input_data = matread(input_data_path)
 
   start_time = 1
@@ -369,6 +517,74 @@ function prepare_netcdf(
 
   isfile(filepath) && rm(filepath)
 
+# -----------------------------------------------------------------------------
+# NetCDF layout and variable guide
+# -----------------------------------------------------------------------------
+# Dimensions
+# hours              : hourly forcing time steps
+# crownareas          : vegetation crown areas represented at the site
+# carbonpools         : 1 leaves, 2 sapwood, 3 fine roots, 4 live stemwood,
+#                       5 fruits/flowers, 6 dead stemwood, 7 dead leaves,
+#                       8 dead fruits
+# nutrient            : nitrogen (N), phosphorus (P), and potassium (K)
+# layers              : soil-layer interfaces; layerbelowsurface: soil layers
+# biogeochemistrypools: pools required by the optional biogeochemistry module
+#
+# Meteorological forcing variables
+# Zs   : soil-layer interface depths [mm]
+# Pr   : precipitation [mm h^-1]
+# Ta   : air temperature at the reference height [degC]
+# Ws   : wind speed at the reference height [m s^-1]
+# ea   : actual vapour pressure [kPa]
+# SAD1/SAD2: diffuse incoming UV-visible / near-infrared radiation [W m^-2]
+# SAB1/SAB2: direct incoming UV-visible / near-infrared radiation [W m^-2]
+# Pre  : atmospheric pressure [hPa]
+# N    : cloud fraction [0-1], or measured incoming longwave radiation [W m^-2]
+#        when values exceed 1; TethysChloris detects the representation used
+# Tdew : dew-point temperature [degC]
+# esat : saturation vapour pressure [kPa]
+# PARB/PARD: direct and diffuse photosynthetically active radiation [W m^-2]
+# Ds   : non-negative vapour-pressure deficit, esat - ea [kPa]
+# Ca   : atmospheric CO2 concentration [umol mol^-1]
+#
+# Hydrologic initial conditions
+# Ci_sun/Ci_shd: internal CO2 of sunlit/shaded leaves [umol mol^-1]
+# In       : canopy interception storage [mm]
+# O        : liquid volumetric soil water content for each layer [-]
+# SWE/SND  : snow water equivalent [mm] and snow depth [m]
+# Ts/Tdamp : surface and soil damping-depth temperatures [degC]
+# Tdp      : initial soil-temperature profile [degC]
+# In_urb/In_rock/In_Litter/In_SWE: initial interception stores [mm]
+# SP_wc    : snowpack liquid-water content [-]
+# ros      : snow density [kg m^-3]
+# t_sls    : time since the last snowfall [h]
+# e_sno/tau_sno: snow emissivity and optical depth [-]
+# EK       : rainfall kinetic-energy state [J m^-2 h^-1]
+# WAT/ICE  : open-water and ice water-equivalent stores [mm]
+# IP_wc    : impermeable-surface water content [-]
+# ICE_D    : ice depth [m]
+# FROCK    : initial rock-cover state/fraction [-]
+# Ws_under : wind speed beneath the canopy [m s^-1]
+#
+# Vegetation initial conditions (defined separately for high and low layers)
+# Rrootl : fine-root length index
+# LAI/SAI: leaf and stem area indices [m2 m^-2]
+# PHE_S  : phenological state (1 dormant, 2 maximum growth,
+#          3 normal growth, 4 senescence)
+# dflo   : days since leaf onset [day]
+# AgeL   : mean leaf age [day]
+# e_rel  : relative photosynthetic efficiency associated with leaf age [-]
+# hc     : canopy height [m]
+# Nreserve/Preserve/Kreserve: plant nutrient reserves [g nutrient m^-2]
+# FNC    : nitrogen-stress factor [-]
+# Vx/Vl  : xylem and leaf water stores [mm per m2 PFT]
+# TBio   : standing vegetation biomass [ton dry matter ha^-1]
+# TdpI   : running soil-temperature state used by vegetation dynamics [degC]
+# ZR95   : depth containing 95% of the root system [mm]
+# B      : eight initial vegetation carbon pools [gC m^-2]
+# NupI   : initial integrated uptake of N, P, and K
+# BLit   : litter biomass [kg dry matter m^-2]
+# RexmyI : integrated root-exudation / mycorrhizal carbon terms [gC m^-2 day^-1]
   NCDataset(filepath, "c") do ds
 
     high_vegetation = defGroup(ds, "high_vegetation")
@@ -397,14 +613,14 @@ function prepare_netcdf(
     defVar(ds, "Zs", Zs, ("layers",))
 
     # ForcingInputs - Meteorological inputs
-    defVar(ds, "Pr", input_data["Pr"][hours], ("hours",))
+    defVar(ds, "Pr", input_data["Pr"][hours] * Pre_frac, ("hours",))
     defVar(ds, "Ta", input_data["Ta"][hours], ("hours",))
     defVar(ds, "Ws", input_data["Ws"][hours], ("hours",))
     defVar(ds, "ea", input_data["ea"][hours], ("hours",))
     defVar(ds, "SAD1", input_data["SAD1"][hours], ("hours",))
     defVar(ds, "SAD2", input_data["SAD2"][hours], ("hours",))
     defVar(ds, "SAB1", input_data["SAB1"][hours], ("hours",))
-    defVar(ds, "Pre", input_data["Pre"][hours] * Pre_frac, ("hours",))
+    defVar(ds, "Pre", input_data["Pre"][hours], ("hours",))
     defVar(ds, "SAB2", input_data["SAB2"][hours], ("hours",))
     defVar(ds, "N", input_data["Latm"][hours], ("hours",)) # TODO: explain why this is happening
     defVar(ds, "Tdew", input_data["Tdew"][hours], ("hours",))
