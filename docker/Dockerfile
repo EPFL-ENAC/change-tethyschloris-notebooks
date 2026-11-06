@@ -19,6 +19,7 @@ ENV JULIA_DEPOT_PATH=/opt/julia-depot \
 USER root
 COPY --chown=jovyan:users . /home/jovyan/work/change-tethyschloris-notebooks
 COPY --chown=jovyan:users TethysChloris.jl /opt/tc-seed/TethysChloris.jl
+COPY docker/before-notebook.d/10-seed-submodule.sh /usr/local/bin/before-notebook.d/
 
 USER ${NB_UID}
 WORKDIR /home/jovyan/work/change-tethyschloris-notebooks
@@ -35,6 +36,11 @@ RUN julia --project=. --heap-size-hint=5G -e 'using Pkg; Pkg.precompile()'
 
 RUN julia --project=. --heap-size-hint=5G \
     -e 'using TethysChloris; println("TethysChloris loaded OK")'
+
+USER root
+RUN cp /home/jovyan/work/change-tethyschloris-notebooks/Manifest.toml /opt/tc-seed/Manifest.toml \
+    && rm -rf /home/jovyan/work/change-tethyschloris-notebooks/Manifest.toml \
+    && chmod +x /usr/local/bin/before-notebook.d/10-seed-submodule.sh
 
 USER root
 RUN rm -rf /usr/local/share/jupyter/kernels/julia-1.12
