@@ -22,9 +22,18 @@ COPY --chown=jovyan:users . /home/jovyan/work/change-tethyschloris-notebooks
 USER ${NB_UID}
 WORKDIR /home/jovyan/work/change-tethyschloris-notebooks
 
-RUN rm -f Manifest.toml && julia --project=. -e 'using Pkg; Pkg.instantiate(); \
-    Pkg.add("IJulia"); Pkg.precompile(); \
-    using TethysChloris; println("TethysChloris loaded OK")'
+ENV JULIA_NUM_PRECOMPILE_TASKS=1 \
+    JULIA_PKG_PRECOMPILE_AUTO=0
+
+RUN rm -f Manifest.toml && julia --project=. --heap-size-hint=5G \
+    -e 'using Pkg; Pkg.instantiate()'
+
+RUN julia --project=. --heap-size-hint=5G -e 'using Pkg; Pkg.add("IJulia")'
+
+RUN julia --project=. --heap-size-hint=5G -e 'using Pkg; Pkg.precompile()'
+
+RUN julia --project=. --heap-size-hint=5G \
+    -e 'using TethysChloris; println("TethysChloris loaded OK")'
 
 USER root
 RUN rm -rf /usr/local/share/jupyter/kernels/julia-1.12
