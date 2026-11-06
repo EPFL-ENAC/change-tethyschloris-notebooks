@@ -1,0 +1,13 @@
+# Keep the build context to tracked course content; data arrives via
+# Renku data connectors, local junk and dev tooling never ships.
+.git
+.github
+.serena
+.DS_Store
+**/.DS_Store
+Manifest.toml
+LocalPreferences.toml
+JuliaLocalPreferences.toml
+devnotes.md
+**/data
+**/results

@@ -30,6 +30,8 @@ JuliaLocalPreferences.toml
 *.mat
 *.yaml
 *.nc
+# but keep CI workflow definitions
+!.github/workflows/*.yaml
 
 */data/*.mat
 */data/*.nc
