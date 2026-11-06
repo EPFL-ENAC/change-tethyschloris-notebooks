@@ -8,15 +8,13 @@ ARG JULIA_TAG=x86_64-julia-1.12.7
 FROM quay.io/jupyter/julia-notebook:${JULIA_TAG}
 
 USER root
-
-# Julia depot must be writable by the session user (jovyan, uid 1000)
 RUN mkdir -p /opt/julia-depot \
     && chown -R jovyan:users /opt/julia-depot \
     && chown -R jovyan:users /home/jovyan
 
 USER ${NB_UID}
-
-ENV JULIA_DEPOT_PATH=/opt/julia-depot
+ENV JULIA_DEPOT_PATH=/opt/julia-depot \
+    JULIA_PROJECT=/home/jovyan/work/change-tethyschloris-notebooks
 
 USER root
 COPY --chown=jovyan:users . /home/jovyan/work/change-tethyschloris-notebooks
@@ -24,15 +22,18 @@ COPY --chown=jovyan:users . /home/jovyan/work/change-tethyschloris-notebooks
 USER ${NB_UID}
 WORKDIR /home/jovyan/work/change-tethyschloris-notebooks
 
-# Instantiate + precompile the full environment (incl. the path-sourced
-# TethysChloris package) so student sessions start without compile delay.
-RUN rm -f Manifest.toml && julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.precompile(); \
+RUN rm -f Manifest.toml && julia --project=. -e 'using Pkg; Pkg.instantiate(); \
+    Pkg.add("IJulia"); Pkg.precompile(); \
     using TethysChloris; println("TethysChloris loaded OK")'
 
-# Exercise data directories may be shadowed by Renku data-connector mounts;
-# ensure the expected mount points exist with correct ownership.
-RUN mkdir -p exercise1/data exercise2/data exercise2d/data \
-    && chown -R jovyan:users /home/jovyan/work
+USER root
+RUN rm -rf /usr/local/share/jupyter/kernels/julia-1.12
+
+USER ${NB_UID}
+RUN julia -e 'using IJulia; installkernel("julia-1.12"; \
+    env=Dict("JULIA_PROJECT"=>ENV["JULIA_PROJECT"]))'
+
+RUN mkdir -p exercise1/data exercise2/data exercise2d/data
 
 USER ${NB_USER}
 WORKDIR /home/jovyan/work
