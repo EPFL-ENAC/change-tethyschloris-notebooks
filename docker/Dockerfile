@@ -4,7 +4,7 @@
 # with a PAT, so no credential is ever needed inside this Dockerfile.
 # See .github/workflows/docker-image.yaml.
 
-FROM jupyter/julia-notebook:x86_64-julia-1.12.2
+FROM quay.io/jupyter/julia-notebook:x86_64-julia-1.12.7
 
 USER root
 
