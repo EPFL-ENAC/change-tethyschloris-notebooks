@@ -19,10 +19,10 @@ USER ${NB_UID}
 ENV JULIA_DEPOT_PATH=/opt/julia-depot
 
 USER root
-COPY --chown=jovyan:users . /home/jovyan/change-tethyschloris-notebooks
+COPY --chown=jovyan:users . /home/jovyan/work/change-tethyschloris-notebooks
 
 USER ${NB_UID}
-WORKDIR /home/jovyan/change-tethyschloris-notebooks
+WORKDIR /home/jovyan/work/change-tethyschloris-notebooks
 
 # Instantiate + precompile the full environment (incl. the path-sourced
 # TethysChloris package) so student sessions start without compile delay.
@@ -32,7 +32,7 @@ RUN rm -f Manifest.toml && julia --project=. -e 'using Pkg; Pkg.instantiate(); P
 # Exercise data directories may be shadowed by Renku data-connector mounts;
 # ensure the expected mount points exist with correct ownership.
 RUN mkdir -p exercise1/data exercise2/data exercise2d/data \
-    && chown -R jovyan:users /home/jovyan/change-tethyschloris-notebooks
+    && chown -R jovyan:users /home/jovyan/work
 
 USER ${NB_USER}
 WORKDIR /home/jovyan/work
