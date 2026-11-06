@@ -39,7 +39,6 @@ RUN julia --project=. --heap-size-hint=5G \
 
 USER root
 RUN cp /home/jovyan/work/change-tethyschloris-notebooks/Manifest.toml /opt/tc-seed/Manifest.toml \
-    && rm -rf /home/jovyan/work/change-tethyschloris-notebooks/Manifest.toml \
     && chmod +x /usr/local/bin/before-notebook.d/10-seed-submodule.sh
 
 USER root
