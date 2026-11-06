@@ -18,6 +18,7 @@ ENV JULIA_DEPOT_PATH=/opt/julia-depot \
 
 USER root
 COPY --chown=jovyan:users . /home/jovyan/work/change-tethyschloris-notebooks
+COPY --chown=jovyan:users TethysChloris.jl /opt/tc-seed/TethysChloris.jl
 
 USER ${NB_UID}
 WORKDIR /home/jovyan/work/change-tethyschloris-notebooks
