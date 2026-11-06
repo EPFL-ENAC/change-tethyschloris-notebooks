@@ -26,7 +26,7 @@ WORKDIR /home/jovyan/change-tethyschloris-notebooks
 
 # Instantiate + precompile the full environment (incl. the path-sourced
 # TethysChloris package) so student sessions start without compile delay.
-RUN julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.precompile(); \
+RUN rm -f Manifest.toml && julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.precompile(); \
     using TethysChloris; println("TethysChloris loaded OK")'
 
 # Exercise data directories may be shadowed by Renku data-connector mounts;
