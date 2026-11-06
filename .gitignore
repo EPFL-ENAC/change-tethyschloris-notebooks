@@ -36,3 +36,8 @@ JuliaLocalPreferences.toml
 */data/*.mat
 */data/*.nc
 */data/*.yaml
+
+# Exercise 2D raw inputs ship with the exercise so it runs out of the box
+!exercise2d/data/Data_CH-Cha_run.mat
+!exercise2d/data/GeoExample.mat
+!exercise2d/data/Ca_Data.mat
