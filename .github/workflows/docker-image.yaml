@@ -6,6 +6,7 @@ on:
     paths:
       - 'docker/Dockerfile'
       - 'Project.toml'
+      - 'Manifest.toml'
       - 'exercise*/**'
       - 'utils/**'
       - '.github/workflows/docker-image.yaml'
@@ -23,19 +24,8 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout (with submodule)
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          token: ${{ secrets.TETHYSCHLORIS_PAT }}
-
-      - name: Verify submodule content
-        run: |
-          if [ -z "$(ls -A TethysChloris.jl/src 2>/dev/null)" ]; then
-            echo "::error::TethysChloris.jl submodule is empty — checkout failed to fetch it. Check the PAT and its scope on CHANGE-EPFL/TethysChloris.jl."
-            exit 1
-          fi
-          echo "Submodule OK: $(ls TethysChloris.jl/src | wc -l) files in src/"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -56,5 +46,7 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          secrets: |
+            tethyschloris_pat=${{ secrets.TETHYSCHLORIS_PAT }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

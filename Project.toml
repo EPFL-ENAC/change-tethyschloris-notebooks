@@ -9,7 +9,7 @@ TethysChloris = "e62e6a3c-deff-438f-bdde-4f7ad3c1cd76"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [sources]
-TethysChloris = {path = "TethysChloris.jl"}
+TethysChloris = {url = "https://github.com/CHANGE-EPFL/TethysChloris.jl.git", rev = "cb2afe439241a5ab89b805184f7edae739fac207"}
 
 [compat]
 JLD2 = "0.5.15"

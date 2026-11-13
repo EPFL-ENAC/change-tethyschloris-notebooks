@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 ARG JULIA_TAG=x86_64-julia-1.12.7
 FROM quay.io/jupyter/julia-notebook:${JULIA_TAG}
 
@@ -19,8 +20,10 @@ WORKDIR /opt/tc-baked
 ENV JULIA_NUM_PRECOMPILE_TASKS=1 \
     JULIA_PKG_PRECOMPILE_AUTO=0
 
-RUN rm -f Manifest.toml && julia --project=. --heap-size-hint=5G \
-    -e 'using Pkg; Pkg.instantiate()'
+RUN --mount=type=secret,id=tethyschloris_pat \
+    git config --global url."https://x-access-token:$(cat /run/secrets/tethyschloris_pat)@github.com/".insteadOf "https://github.com/" \
+    && julia --project=. --heap-size-hint=5G -e 'using Pkg; Pkg.instantiate()' \
+    && git config --global --unset-all url."https://x-access-token:$(cat /run/secrets/tethyschloris_pat)@github.com/".insteadOf
 
 RUN julia --project=. --heap-size-hint=5G -e 'using Pkg; Pkg.add("IJulia")'
 
