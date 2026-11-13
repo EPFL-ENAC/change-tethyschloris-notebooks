@@ -33,10 +33,10 @@ RUN julia --project=. --heap-size-hint=5G \
     -e 'using TethysChloris; println("TethysChloris loaded OK")'
 
 USER root
-RUN rm -rf /usr/local/share/jupyter/kernels/julia-1.12
+RUN rm -rf ${NB_PYTHON_PREFIX}/share/jupyter/kernels/julia-1.12
 
 USER ${NB_UID}
-RUN julia -e 'using IJulia; installkernel("julia-1.12"; \
+RUN julia -e 'using IJulia; installkernel("Julia"; \
     env=Dict("JULIA_PROJECT"=>ENV["JULIA_PROJECT"]))'
 
 USER ${NB_USER}
