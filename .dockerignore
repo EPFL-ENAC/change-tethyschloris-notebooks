@@ -5,7 +5,6 @@
 .serena
 .DS_Store
 **/.DS_Store
-Manifest.toml
 LocalPreferences.toml
 JuliaLocalPreferences.toml
 devnotes.md
