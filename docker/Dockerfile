@@ -20,7 +20,7 @@ WORKDIR /opt/tc-baked
 ENV JULIA_NUM_PRECOMPILE_TASKS=1 \
     JULIA_PKG_PRECOMPILE_AUTO=0
 
-RUN --mount=type=secret,id=tethyschloris_pat \
+RUN --mount=type=secret,id=tethyschloris_pat,uid=1000,gid=1000 \
     git config --global url."https://x-access-token:$(cat /run/secrets/tethyschloris_pat)@github.com/".insteadOf "https://github.com/" \
     && julia --project=. --heap-size-hint=5G -e 'using Pkg; Pkg.instantiate()' \
     && git config --global --unset-all url."https://x-access-token:$(cat /run/secrets/tethyschloris_pat)@github.com/".insteadOf
