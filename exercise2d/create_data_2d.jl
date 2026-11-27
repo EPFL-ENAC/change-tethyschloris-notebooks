@@ -15,6 +15,10 @@ include(joinpath(@__DIR__, "utils", "data_utils.jl"))
 # 3 October 2005 23:00, hourly. The indices below point into the raw
 # CH-Cha record (Data_CH-Cha_run.mat), which starts on 1 January 2005.
 # ---------------------------------------------------------------------------
+# Define the simulation dates once for data selection and model parameters.
+simulation_start = DateTime(2005, 5, 1, 0, 0)
+simulation_end = DateTime(2005, 10, 3, 23, 0)
+
 local_data_dir = joinpath(@__DIR__, "data")
 
 meteo_file = joinpath(local_data_dir, "Data_CH-Cha_run.mat")
@@ -29,6 +33,31 @@ end
 
 meteo_data = matread(meteo_file)
 geo_data = matread(geo_file)
+
+# Standardize soil inputs to percentages before the NetCDF /100 conversion below.
+# For this dataset, per-cell totals <1 indicate fractions; totals >10 indicate
+# percentages. Ambiguous or mixed scales require checking the source metadata.
+soil_fields = ("PSAN", "PCLA", "PORG")
+
+# Require matching grids and finite, non-negative values before checking units.
+@assert all(size(geo_data[name]) == size(geo_data["PSAN"]) for name in soil_fields) "Soil grids must have matching dimensions."
+@assert all(all(x -> isfinite(x) && x >= 0, geo_data[name]) for name in soil_fields) "Check missing or negative soil values before converting units."
+
+soil_sum = geo_data["PSAN"] .+ geo_data["PCLA"] .+ geo_data["PORG"]
+
+if all(x -> 0 < x < 1, soil_sum)
+    # Fraction inputs, e.g. 0.3, become percentages, e.g. 30.
+    for name in soil_fields
+        geo_data[name] = geo_data[name] .* 100
+    end
+    println("Converted soil fractions to percentages.")
+elseif all(x -> 10 < x <= 100, soil_sum)
+    println("Soil inputs are already percentages; no conversion needed.")
+else
+    error("Cannot infer consistent soil units. Check the source metadata: totals of 0, 1-10, above 100, or mixed scales need manual review.")
+end
+
+
 ca_data = matread(joinpath(local_data_dir, "Ca_Data.mat"))
 ca_data["Date_CO2"] = vec(ca_data["Date_CO2"])
 
@@ -38,8 +67,8 @@ ca_data["Date_CO2"] = vec(ca_data["Date_CO2"])
 # with the loop running steps 2..3744 (N_time_step = 3743).
 raw_dates = vec(meteo_data["Date"]) # MATLAB serial dates, kept for CO2 matching
 datevec_dates = datevec(raw_dates)
-start_time = findfirst(>=(DateTime(2005, 5, 1, 0, 0)), datevec_dates)
-end_time = findfirst(>=(DateTime(2005, 10, 3, 23, 0)), datevec_dates)
+start_time = findfirst(>=(simulation_start), datevec_dates)
+end_time = findfirst(>=(simulation_end), datevec_dates)
 @info "Simulation window" start_time end_time n_records = end_time - start_time + 1
 
 cc_max = 1 # max number of crown areas in each grid
@@ -233,12 +262,18 @@ vegetationmanagement = Dict{String,Any}(
     "fract_left_BG" => 1.0,
 )
 
+# Class 1 (wood) selects the first entry of each parameter array;
+# class 2 (grass/shrub) selects the second, for both high and low vegetation.
+# These Boolean masks select parameter entries, not canopy layers.
+# The class IDs match the reclassified grid ksv values written below.
 vegetation_indices = Dict{Int,Vector{Bool}}(1 => [true, false], 2 => [false, true])
 
 data = Dict{String,Any}()
 
 for index in eachindex(landusetypes)
 
+    # Store one parameter block per class; model initialization selects
+    # yamldata[string(grid.ksv[k])] for each cell k.
     data[string(index)] = Dict{String,Any}()
     index_data = data[string(index)]
 
@@ -266,7 +301,7 @@ for index in eachindex(landusetypes)
 
     index_data["simulation"] = Dict{String,Any}(
         "Zs" => Zs,
-        "dt" => 3600,
+        "dt" => 3600, # Simulation time step [s]: 3600 s = 1 hour.
         "dtd" => 1,
         "Lon" => 8.4104,
         "Lat" => 47.2102,
@@ -280,7 +315,7 @@ for index in eachindex(landusetypes)
         "fpr" => 1.0,
         "CASE_ROOT" => 1,
         "zatm" => spatial_parameters["simulation"]["zatm"][index], # This is linked to landuse
-        "timerange" => [DateTime(2005, 5, 1, 0, 0), DateTime(2005, 10, 3, 23, 0)],
+        "timerange" => [simulation_start, simulation_end],
         "Zbas" => 393,
     )
 
@@ -581,8 +616,9 @@ defVar(grid, "cellsize", geo_data["cellsize"], ())
 
 Slo_top = geo_data["Slo_top"]
 
-# Land-use codes: the MATLAB demo collapses classes 1-4 to two vegetation
-# types (1 = wood, 2-4 = grass/shrub) before running (GO_TeC_Demo.m:184-188).
+# Reclassify the original land-use codes: 1 stays wood; 2-4 become grass/shrub.
+# The resulting ksv values (1 or 2) link each cell to its YAML parameter block
+# and NetCDF initial-state group, prepared using vegetation_indices above.
 ksv = copy(geo_data["ksv"])
 ksv[ksv.==3] .= 2
 ksv[ksv.==4] .= 2
